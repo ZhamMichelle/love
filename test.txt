@@ -1,1 +1,2 @@
 Style has changed.
+using pull for remote repository.
