@@ -1,1 +1,438 @@
-<h>Hi me</h>
+import React, { useState, useEffect } from "react";
+import {
+  InputGroup,
+  Checkbox,
+  NumericInput,
+  Button,
+  HTMLSelect,
+  Classes,
+  Intent,
+  HTMLTable,
+  Divider,
+  Position,
+  Drawer
+} from "@blueprintjs/core";
+import { IconNames } from "@blueprintjs/icons";
+import classNames from "classnames";
+import {
+  Param,
+  Command as CommandModel
+} from "../../../api/ColvirRestController";
+import iassign from "immutable-assign";
+import api from "../../../api";
+import { AppContext, history } from "../../../App";
+import { FormState } from "../../../models";
+import { isOpen } from "@blueprintjs/core/lib/esm/components/context-menu/contextMenu";
+
+const commandType = [
+  { code: "StoredProcedure", value: "Процедура/Функция" },
+  { code: "Text", value: "Текст выборки" }
+];
+
+const paramType = [
+  "NVarchar2",
+  "BFile",
+  "Blob",
+  "Byte",
+  "Char",
+  "Clob",
+  "Date",
+  "Decimal",
+  "Double",
+  "Long",
+  "LongRaw",
+  "Int16",
+  "Int32",
+  "Int64",
+  "IntervalDS",
+  "IntervalYM",
+  "NClob",
+  "NChar",
+  "Raw",
+  "RefCursor",
+  "Single",
+  "TimeStamp",
+  "TimeStampLTZ",
+  "TimeStampTZ",
+  "Varchar2",
+  "XmlType",
+  "BinaryDouble",
+  "BinaryFloat",
+  "Boolean"
+];
+
+const paramDirection = ["Input", "Output", "InputOutput", "ReturnValue"];
+// export interface OpenClose {
+//   open: boolean;
+//   close: boolean;
+// }
+
+export interface IDrawerExampleState {
+  autoFocus: boolean;
+  canEscapeKeyClose: boolean;
+  canOutsideClickClose: boolean;
+  enforceFocus: boolean;
+  hasBackdrop: boolean;
+  //isOpen: boolean;
+  position?: Position;
+  size?: string;
+  usePortal: boolean;
+}
+
+const Command = (props: any) => {
+  const [model, setModel] = useState(new CommandModel());
+
+  const { match, formState } = props;
+
+  useEffect(() => {
+    if (formState === FormState.EDIT || formState === FormState.READ) {
+      api.colvirRest.getCommand(match.params.id).then(m => setModel(m));
+    }
+  }, []);
+
+  const onSubmit = (e: any, showToast: () => void) => {
+    e.preventDefault();
+    if (formState === FormState.CREATE) {
+      api.colvirRest.registerCommand(model).then(() => {
+        showToast();
+        history.goBack();
+      });
+    } else if (formState === FormState.EDIT) {
+      api.colvirRest.putCommand(model).then(() => {
+        showToast();
+        history.goBack();
+      });
+    }
+  };
+
+  let state: IDrawerExampleState = {
+    autoFocus: true,
+    canEscapeKeyClose: true,
+    canOutsideClickClose: true,
+    enforceFocus: true,
+    hasBackdrop: true,
+    //isOpen: true,
+    position: Position.RIGHT,
+    size: undefined,
+    usePortal: true
+  };
+
+  const [open, setOpen] = useState(false);
+  // const [] = useState<OpenClose[]>([]);
+
+  const tester = () => {
+    var result = iassign(
+      model,
+      c => c.params,
+      p => p?.filter(m => m.size === 0)
+    );
+    // var sample = [1, 2, 3];
+
+    // var result = sample.filter(elem => elem !== 2);
+    for (let i = 0; i < 4; i++) {
+      console.log("result " + result.params.map(m => m.name));
+    }
+    return (
+      <tbody>
+        {result.params.map((m, i) => (
+          <tr key={i + 1}>
+            <td>
+              "{result.params[i].name}":
+              <br />
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    );
+  };
+
+  //AppContext.Consumer: отрендерить, используя значение контекста. Consumer — это React-компонент, который подписывается на изменения контекста.
+  return (
+    //В свою очередь, это позволяет вам подписаться на контекст в функциональном компоненте.
+    <AppContext.Consumer>
+      {({ showToastCreate, showToastEdit }) => (
+        <fieldset
+          style={{ border: 0, padding: 0 }}
+          disabled={formState === FormState.READ}
+        >
+          <form
+            onSubmit={(e: any) =>
+              onSubmit(
+                e,
+                formState === FormState.CREATE ? showToastCreate : showToastEdit
+              )
+            }
+          >
+            <Button onClick={() => setOpen(true)}>Ohhhhhh My!</Button>
+            <Drawer
+              className="Don't know"
+              icon="info-sign"
+              isOpen={open}
+              onClose={() => setOpen(false)}
+              title="Palantir Foundry"
+              {...state}
+            >
+              <div>
+                <div>
+                  <div>{"{"}</div>
+                  <tbody>
+                    {/* {model.params.map((m, i) => (
+                      <tr key={i + 1}>
+                        <td>
+                          "{model.params[i].name}":
+                          {model.params.filter(elem => elem.direction === 0)}
+                          <br />
+                        </td>
+                      </tr>
+                    ))} */}
+                    {tester()}
+                  </tbody>
+                  {/* {model.params.filter(elem => elem.direction === 0)} */}
+                  <div>{"}"}</div>
+                </div>
+              </div>
+            </Drawer>
+            <Divider />
+            <InputGroup
+              value={model.name}
+              required
+              placeholder="Название"
+              onChange={(e: any) =>
+                setModel({ ...model, name: e.target.value })
+              }
+            />
+            <br />
+            <HTMLSelect
+              value={model.type}
+              onChange={(e: any) =>
+                setModel({ ...model, type: e.target.value })
+              }
+            >
+              {commandType.map((m, i) => (
+                <option key={i} value={m.code}>
+                  {m.value}
+                </option>
+              ))}
+            </HTMLSelect>
+            <br />
+            <br />
+            <InputGroup
+              required
+              value={model.commandText}
+              placeholder="Название команды"
+              onChange={(e: any) =>
+                setModel({ ...model, commandText: e.target.value })
+              }
+            />
+            <br />
+            <NumericInput
+              required
+              value={model.versionTag}
+              min={0}
+              placeholder="Версия"
+              onValueChange={(value: number, valueString: string) =>
+                setModel({ ...model, versionTag: valueString })
+              }
+            />
+            <br />
+            <InputGroup
+              required
+              value={model.description}
+              placeholder="Описание"
+              onChange={(e: any) =>
+                setModel({ ...model, description: e.target.value })
+              }
+            />
+            <br />
+            <Checkbox
+              checked={model.active}
+              label="Активная"
+              onChange={(e: any) =>
+                setModel({ ...model, active: !model.active })
+              }
+            />
+            <br />
+            <Checkbox
+              checked={model.userSession}
+              label="User Session"
+              onChange={(e: any) =>
+                setModel({ ...model, userSession: !model.userSession })
+              }
+            />
+            <br />
+            <label>
+              <b>Параметры</b>
+            </label>
+            <br />
+            <br />
+            <HTMLTable striped={true} bordered={true} style={{ width: "100%" }}>
+              <tbody>
+                {model.params.map((m, i) => (
+                  <tr key={i}>
+                    <td>
+                      <b>{i + 1}</b>
+                    </td>
+                    <td style={{ paddingTop: "20px", paddingBottom: "20px" }}>
+                      <InputGroup
+                        required
+                        value={m.name}
+                        placeholder="Название"
+                        onChange={(e: any) =>
+                          setModel(
+                            iassign(
+                              model,
+                              (c: CommandModel) => c.params[i].name,
+                              p => e.target.value
+                            )
+                          )
+                        }
+                      />
+                      <br />
+                      <HTMLSelect
+                        required
+                        value={m.direction}
+                        className="tdChild"
+                        onChange={(e: any) =>
+                          setModel(
+                            iassign(
+                              model,
+                              (c: CommandModel) => c.params[i].direction,
+                              p => e.target.value
+                            )
+                          )
+                        }
+                      >
+                        {paramDirection.map((m, i) => (
+                          <option key={i} value={m}>
+                            {m}
+                          </option>
+                        ))}
+                      </HTMLSelect>
+                    </td>
+                    <td style={{ paddingTop: "20px", paddingBottom: "20px" }}>
+                      <InputGroup
+                        required
+                        value={m.description}
+                        placeholder="Описание"
+                        onChange={(e: any) =>
+                          setModel(
+                            iassign(
+                              model,
+                              (c: CommandModel) => c.params[i].description,
+                              p => e.target.value
+                            )
+                          )
+                        }
+                      />
+                      <br />
+                      <NumericInput
+                        required
+                        value={m.size}
+                        placeholder="размер"
+                        min={0}
+                        className={classNames({ [Classes.FILL]: true })}
+                        onValueChange={(value: number, valueString: string) =>
+                          setModel(
+                            iassign(
+                              model,
+                              (c: CommandModel) => c.params[i].size,
+                              p => value
+                            )
+                          )
+                        }
+                      />
+                    </td>
+                    <td style={{ paddingTop: "20px", paddingBottom: "20px" }}>
+                      <HTMLSelect
+                        required
+                        value={m.type}
+                        className="tdChild"
+                        onChange={(e: any) =>
+                          setModel(
+                            iassign(
+                              model,
+                              (c: CommandModel) => c.params[i].type,
+                              p => e.target.value
+                            )
+                          )
+                        }
+                      >
+                        {paramType.map((m, i) => (
+                          <option key={i} value={m}>
+                            {m}
+                          </option>
+                        ))}
+                      </HTMLSelect>
+                      <br />
+                      <br />
+                      <Checkbox
+                        checked={m.defaultNull}
+                        label="NULL по Умолчанию"
+                        onChange={(e: any) =>
+                          setModel(
+                            iassign(
+                              model,
+                              (c: CommandModel) => c.params[i].defaultNull,
+                              p => !model.params[i].defaultNull
+                            )
+                          )
+                        }
+                      />
+                    </td>
+                    <td valign="middle">
+                      <Button
+                        className={Classes.MINIMAL}
+                        icon={IconNames.REMOVE}
+                        intent={Intent.DANGER}
+                        onClick={() =>
+                          setModel(
+                            iassign(
+                              model,
+                              (c: CommandModel) => c.params,
+                              p => {
+                                p.splice(i, 1);
+                                return p;
+                              }
+                            )
+                          )
+                        }
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </HTMLTable>
+            <br />
+            <div style={{ textAlign: "right" }}>
+              <Button
+                small
+                text="Добавить"
+                intent={Intent.PRIMARY}
+                onClick={() =>
+                  setModel(
+                    iassign(
+                      model,
+                      (c: CommandModel) => c.params,
+                      p => {
+                        p.push(new Param());
+                        return p;
+                      }
+                    )
+                  )
+                }
+              />
+            </div>
+            <br />
+            <br />
+            <div style={{ textAlign: "center" }}>
+              <Button type="submit" text="Сохранить" />
+            </div>
+          </form>
+        </fieldset>
+      )}
+    </AppContext.Consumer>
+  );
+};
+
+export default Command;
+
